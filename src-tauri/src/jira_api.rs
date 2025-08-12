@@ -13,7 +13,6 @@ pub struct JiraClient {
 
 impl JiraClient {
     pub fn new(base_url: String, email: String, access_token: String) -> Self {
-        // Create client with SSL verification disabled for corporate environments
         let client = reqwest::Client::builder()
             .danger_accept_invalid_certs(true)
             .build()
@@ -27,7 +26,6 @@ impl JiraClient {
         }
     }
 
-    /// Get issues assigned to the current user
     pub async fn get_assigned_issues(&self) -> Result<Vec<JiraIssue>, Box<dyn std::error::Error>> {
         let url = format!("{}/rest/api/3/search", self.base_url);
         
@@ -51,7 +49,6 @@ impl JiraClient {
         Ok(search_response.issues)
     }
 
-    /// Create a worklog entry for a specific issue
     pub async fn create_worklog(
         &self,
         issue_key: &str,
@@ -96,7 +93,6 @@ impl JiraClient {
         Ok(worklog_response)
     }
 
-    /// Helper function to convert time string (like "2h", "30m") to seconds
     pub fn parse_time_to_seconds(time_str: &str) -> Result<u32, Box<dyn std::error::Error>> {
         if time_str.is_empty() {
             return Err("Time string is empty".into());
@@ -118,14 +114,13 @@ impl JiraClient {
         let seconds = match unit_part {
             "h" => (number * 3600.0) as u32,
             "m" => (number * 60.0) as u32,
-            "d" => (number * 8.0 * 3600.0) as u32, // Assuming 8 hours per day
+            "d" => (number * 8.0 * 3600.0) as u32,
             _ => return Err("Invalid time unit".into()),
         };
 
         Ok(seconds)
     }
 
-    /// Test connection to JIRA
     pub async fn test_connection(&self) -> Result<bool, Box<dyn std::error::Error>> {
         let url = format!("{}/rest/api/3/myself", self.base_url);
         

@@ -11,20 +11,16 @@ mod jira_api;
 use jira_api::JiraClient;
 use jira_types::{JiraIssue, WorklogResponse};
 
-// Global state to store JIRA client
 type JiraState = Mutex<Option<JiraClient>>;
 
-// Background notification scheduler
 async fn start_notification_scheduler(app_handle: AppHandle<Wry>) {
-    let mut interval = interval(Duration::from_secs(60)); // Check every minute
+    let mut interval = interval(Duration::from_secs(60));
     
     loop {
         interval.tick().await;
         
         let now = Local::now();
-        // Check if it's 5 PM (17:00)
         if now.hour() == 17 && now.minute() == 0 {
-            // Emit an event to trigger notification from frontend
             if let Some(main_window) = app_handle.get_webview_window("main") {
                 if let Err(e) = main_window.emit("daily-reminder", ()) {
                     eprintln!("Failed to emit daily reminder event: {}", e);
@@ -34,7 +30,6 @@ async fn start_notification_scheduler(app_handle: AppHandle<Wry>) {
     }
 }
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -49,11 +44,9 @@ async fn connect_to_jira(
 ) -> Result<bool, String> {
     let client = JiraClient::new(base_url, email, access_token);
     
-    // Test the connection
     match client.test_connection().await {
         Ok(is_connected) => {
             if is_connected {
-                // Store the client in global state
                 let mut jira_state = state.lock().map_err(|e| e.to_string())?;
                 *jira_state = Some(client);
                 Ok(true)
@@ -69,7 +62,6 @@ async fn connect_to_jira(
 async fn get_assigned_issues(
     state: State<'_, JiraState>,
 ) -> Result<Vec<JiraIssue>, String> {
-    // Clone the client from the guard, then drop the guard
     let client = {
         let jira_state = state.lock().map_err(|e| e.to_string())?;
         jira_state.as_ref().cloned()
@@ -93,7 +85,6 @@ async fn create_worklog(
     time_spent: String,
     state: State<'_, JiraState>,
 ) -> Result<WorklogResponse, String> {
-    // Clone the client from the guard, then drop the guard
     let client = {
         let jira_state = state.lock().map_err(|e| e.to_string())?;
         jira_state.as_ref().cloned()
@@ -101,7 +92,6 @@ async fn create_worklog(
     
     match client {
         Some(client) => {
-            // Parse time spent to seconds
             let time_spent_seconds = JiraClient::parse_time_to_seconds(&time_spent)
                 .map_err(|e| format!("Invalid time format: {}", e))?;
             
@@ -110,7 +100,7 @@ async fn create_worklog(
                 &description,
                 &started,
                 time_spent_seconds,
-                None, // No visibility restrictions for now
+                None,
             )
             .await
             .map_err(|e| format!("Failed to create worklog: {}", e))
@@ -147,7 +137,6 @@ async fn hide_to_tray(app_handle: AppHandle<Wry>) -> Result<(), String> {
 
 #[tauri::command]
 async fn send_test_notification(_app_handle: AppHandle<Wry>) -> Result<(), String> {
-    // This will be handled by the frontend using the notification plugin
     Ok(())
 }
 
@@ -158,7 +147,6 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
-            // Create tray menu
             let show_item = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
             let hide_item = MenuItem::with_id(app, "hide", "Hide", true, None::<&str>)?;
             let separator1 = MenuItem::with_id(app, "separator1", "---", false, None::<&str>)?;
@@ -175,15 +163,12 @@ pub fn run() {
                 &quit_item,
             ])?;
 
-            // Set the tray menu
             app.tray_by_id("main")
                 .expect("Failed to get tray")
                 .set_menu(Some(menu))?;
 
-            // Start the notification scheduler in the background
             let app_handle = app.handle().clone();
             
-            // Use Tauri's async runtime instead of raw tokio::spawn
             tauri::async_runtime::spawn(async move {
                 start_notification_scheduler(app_handle).await;
             });
@@ -203,7 +188,6 @@ pub fn run() {
                 }
             }
             "test_notification" => {
-                // Emit event to frontend for test notification
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.emit("test-notification", ());
                 }
@@ -219,7 +203,6 @@ pub fn run() {
                 button_state: tauri::tray::MouseButtonState::Up,
                 ..
             } => {
-                // Show the main window when left-clicking the tray icon
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.show();
                     let _ = window.set_focus();
@@ -229,7 +212,6 @@ pub fn run() {
         })
         .on_window_event(|_window, event| match event {
             WindowEvent::CloseRequested { api, .. } => {
-                // Prevent the window from closing and hide it instead
                 _window.hide().unwrap();
                 api.prevent_close();
             }

@@ -43,15 +43,12 @@
     description: string;
   }
 
-  // State variables
   let isLoggedIn = $state(false);
   let assignedIssues = $state<Issue[]>([]);
   let status = $state<Status>({ message: '', type: '', visible: false });
 
-  // Debug mode - only show background controls in development
   const isDebugMode = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
-  // Form states
   let loginForm = $state<LoginForm>({
     baseUrl: '',
     email: '',
@@ -67,11 +64,9 @@
   });
 
   onMount(() => {
-    // Set today's date as default
     const today = new Date().toISOString().split('T')[0];
     workLogForm.workDate = today;
     
-    // Load saved credentials (for demo purposes)
     const saved = JSON.parse(localStorage.getItem('jiraCredentials') || '{}');
     if (saved.token) {
       loginForm.token = saved.token;
@@ -83,15 +78,12 @@
       loginForm.baseUrl = saved.baseUrl;
     }
 
-    // Setup notification permissions
     setupNotifications();
 
-    // Listen for daily reminder events from Rust
     listen('daily-reminder', () => {
       sendDailyReminder();
     });
 
-    // Listen for test notification events from system tray
     listen('test-notification', () => {
       handleTestNotification();
     });
@@ -146,22 +138,19 @@
     showStatus('Connecting to JIRA...', 'loading');
 
     try {
-      // Call Rust function to connect to JIRA
       const isConnected = await invoke<boolean>('connect_to_jira', {
-        baseUrl: baseUrl.replace(/\/$/, ''), // Remove trailing slash
+        baseUrl: baseUrl.replace(/\/$/, ''),
         email: email,
         accessToken: token
       });
 
       if (isConnected) {
-        // Save credentials
         localStorage.setItem('jiraCredentials', JSON.stringify({
           email: email,
           token: token,
           baseUrl: baseUrl
         }));
 
-        // Load assigned issues
         await loadAssignedIssues();
         
         isLoggedIn = true;
@@ -173,10 +162,8 @@
     } catch (error: any) {
       let errorMessage = 'Connection failed: ';
       
-      // Safely get the error message
       const errorText = error?.message || error?.toString() || '';
       
-      // Parse different types of errors
       if (errorText.includes('network')) {
         errorMessage += 'Network error. Please check your internet connection.';
       } else if (errorText.includes('timeout')) {
@@ -235,7 +222,6 @@
     showStatus('Submitting work log...', 'loading');
 
     try {
-      // Convert date to JIRA-compatible format: yyyy-MM-ddTHH:mm:ss.SSS+0000
       const dateObj = new Date(workDate + 'T09:00:00.000');
       const startedDateTime = dateObj.toISOString().replace('Z', '+0000');
       
@@ -248,7 +234,6 @@
       
       showStatus('Work log submitted successfully!', 'success');
       
-      // Reset form
       workLogForm.timeAmount = '';
       workLogForm.description = '';
       
@@ -268,7 +253,6 @@
     isLoggedIn = false;
     assignedIssues = [];
     
-    // Clear form fields
     loginForm.email = '';
     loginForm.token = '';
     loginForm.baseUrl = '';
@@ -312,8 +296,6 @@
     {#if !isLoggedIn}
       <!-- Login Section -->
       <div class="space-y-4 max-w-2xl mx-auto">
-        
-        <!-- Status Messages for Login - Fixed height container -->
         <div class="min-h-[60px] flex items-center">
           {#if status.visible}
             <div class="w-full p-3 rounded-lg text-center font-medium text-sm transition-all {
