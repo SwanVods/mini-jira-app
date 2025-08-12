@@ -232,7 +232,7 @@
       <div class="space-y-4 max-w-2xl mx-auto">
         <div class="bg-blue-500/15 p-2.5 rounded-lg flex justify-between items-center">
           <div class="flex flex-col">
-            <span class="text-purple-400 font-medium text-sm">Connected</span>
+            <span class="text-purple-400 font-medium text-sm">Using Access Token</span>
             {#if status.visible}
               <span class="text-xs font-normal {
                 status.type === 'success' ? 'text-green-400' :
