@@ -214,4 +214,4 @@ For issues and questions:
 
 ---
 
-Built with ❤️ using Tauri, Svelte, and Rust
+Built with 🔥 and ☕ using Tauri, Svelte, and Rust
