@@ -106,6 +106,9 @@
     <!-- Theme Toggle Button -->
     <ThemeToggle />
 
+    <!-- Status Message -->
+    <StatusMessage />
+
     <h1 class="text-center mb-5 font-light text-3xl max-w-4xl mx-auto {$themeStore ? 'text-slate-200' : 'text-gray-800'}">
       Mini Jira Logger
     </h1>
@@ -115,42 +118,45 @@
     {:else}
       <!-- User Info Panel -->
       <div class="max-w-4xl mx-auto mb-6">
-        <div class="p-3 rounded-lg flex justify-between items-center {$themeStore ? 'bg-blue-500/15' : 'bg-blue-50 border border-blue-200'}">
-          <div class="flex items-center gap-3">
-            <span class="font-medium {$themeStore ? 'text-purple-400' : 'text-purple-600'}">{$authStore.credentials.email}</span>
+        <div class="p-2.5 rounded-lg flex justify-between items-center {$themeStore ? 'bg-blue-500/15' : 'bg-blue-50 border border-blue-200'}">
+          <div class="flex flex-col min-h-[40px] justify-center">
+            <span class="font-medium text-sm {$themeStore ? 'text-purple-400' : 'text-purple-600'}">{$authStore.credentials.email}</span>
           </div>
-          <div class="flex items-center gap-2">
-            <!-- Debug Controls (Development Only) -->
-            {#if isDebugMode}
+          <button
+            onclick={handleLogout}
+            class="border px-3 py-1 rounded-2xl cursor-pointer text-xs transition-all {$themeStore 
+              ? 'bg-transparent border-red-400 text-red-400 hover:bg-red-400 hover:text-slate-800' 
+              : 'bg-transparent border-red-500 text-red-500 hover:bg-red-500 hover:text-white'}"
+          >
+            Logout
+          </button>
+        </div>
+
+        <!-- Background Controls Section (Debug Mode Only) -->
+        {#if isDebugMode}
+          <div class="mt-4 p-3 rounded-lg {$themeStore ? 'bg-slate-700/50' : 'bg-gray-100 border border-gray-200'}">
+            <h3 class="font-medium text-sm mb-3 uppercase tracking-wide {$themeStore ? 'text-slate-300' : 'text-gray-700'}">Background Controls</h3>
+            <div class="flex gap-2 flex-wrap">
               <button
                 onclick={handleHideToTray}
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all hover:-translate-y-0.5 {$themeStore 
-                  ? 'bg-slate-600 text-white hover:bg-slate-500' 
-                  : 'bg-gray-500 text-white hover:bg-gray-400'}"
+                class="flex-1 p-2 border-none rounded-lg text-xs font-semibold cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all {$themeStore 
+                  ? 'bg-gradient-to-r from-slate-600 to-slate-700 text-white' 
+                  : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'}"
               >
                 Hide to Tray
               </button>
               <button
                 onclick={handleTestNotification}
-                class="px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg transition-all hover:-translate-y-0.5 hover:bg-green-700"
+                class="flex-1 p-2 bg-gradient-to-r from-green-600 to-green-700 text-white border-none rounded-lg text-xs font-semibold cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all"
               >
                 Test Notification
               </button>
-            {/if}
-            <button
-              onclick={handleLogout}
-              class="px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all hover:-translate-y-0.5 {$themeStore 
-                ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-slate-800' 
-                : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white'}"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        {#if isDebugMode}
-          <div class="mt-2 p-2 rounded text-xs {$themeStore ? 'bg-slate-700/30 text-slate-400' : 'bg-gray-100 text-gray-600'}">
-            <strong>Debug Mode:</strong> App runs in background • Daily reminder at 5 PM • Access via system tray icon
+            </div>
+            <p class="text-xs mt-2 {$themeStore ? 'text-slate-400' : 'text-gray-600'}">
+              • App runs in background when closed<br>
+              • Daily reminder at 5 PM<br>
+              • Access via system tray icon
+            </p>
           </div>
         {/if}
       </div>
