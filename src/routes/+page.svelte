@@ -387,7 +387,7 @@
       <!-- Footer - Sticky to bottom -->
       <div class="text-center py-4 border-t border-slate-700/50 mt-auto">
         <p class="text-xs text-slate-500">
-          Made with <span class="text-orange-500 font-semibold">anger</span> by ariefg 🔥
+          Crafted with <span class="text-orange-800 font-semibold">chaos</span> and <span class="text-[#8B4513] font-semibold">coffee</span> by ariefg ☕
         </p>
       </div>
     {:else}
