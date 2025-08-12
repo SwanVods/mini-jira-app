@@ -25,6 +25,7 @@
 
   interface LoginForm {
     baseUrl: string;
+    email: string;
     token: string;
   }
 
@@ -43,7 +44,8 @@
 
   // Form states
   let loginForm = $state<LoginForm>({
-    baseUrl: '',
+    baseUrl: 'https://ariefgraifhan.atlassian.net',
+    email: '',
     token: '',
   });
 
@@ -65,6 +67,9 @@
     if (saved.token) {
       loginForm.token = saved.token;
     }
+    if (saved.email) {
+      loginForm.email = saved.email;
+    }
     if (saved.baseUrl) {
       loginForm.baseUrl = saved.baseUrl;
     }
@@ -81,9 +86,9 @@
   }
 
   async function handleLogin() {
-    const { baseUrl, token } = loginForm;
+    const { baseUrl, email, token } = loginForm;
 
-    if (!baseUrl || !token) {
+    if (!baseUrl || !email || !token) {
       showStatus('Please fill in all fields', 'error');
       return;
     }
@@ -94,12 +99,14 @@
       // Call Rust function to connect to JIRA
       const isConnected = await invoke<boolean>('connect_to_jira', {
         baseUrl: baseUrl.replace(/\/$/, ''), // Remove trailing slash
+        email: email,
         accessToken: token
       });
 
       if (isConnected) {
         // Save credentials
         localStorage.setItem('jiraCredentials', JSON.stringify({
+          email: email,
           token: token,
           baseUrl: baseUrl
         }));
@@ -110,11 +117,37 @@
         isLoggedIn = true;
         showStatus('Successfully connected to JIRA!', 'success');
       } else {
-        showStatus('Failed to connect to JIRA', 'error');
+        showStatus('Authentication failed. Please check your credentials.', 'error');
       }
       
     } catch (error: any) {
-      showStatus('Failed to connect: ' + error.message, 'error');
+      let errorMessage = 'Connection failed: ';
+      
+      // Safely get the error message
+      const errorText = error?.message || error?.toString() || '';
+      
+      // Parse different types of errors
+      if (errorText.includes('network')) {
+        errorMessage += 'Network error. Please check your internet connection.';
+      } else if (errorText.includes('timeout')) {
+        errorMessage += 'Connection timeout. The server may be slow or unreachable.';
+      } else if (errorText.includes('ssl') || errorText.includes('certificate')) {
+        errorMessage += 'SSL certificate error. Please check your JIRA URL.';
+      } else if (errorText.includes('401') || errorText.includes('Unauthorized')) {
+        errorMessage += 'Invalid credentials. Please check your access token.';
+      } else if (errorText.includes('404') || errorText.includes('Not Found')) {
+        errorMessage += 'JIRA server not found. Please check your base URL.';
+      } else if (errorText.includes('403') || errorText.includes('Forbidden')) {
+        errorMessage += 'Access denied. Your token may not have sufficient permissions.';
+      } else if (errorText.includes('500')) {
+        errorMessage += 'Server error. The JIRA server is experiencing issues.';
+      } else if (errorText) {
+        errorMessage += errorText;
+      } else {
+        errorMessage += 'Unknown error occurred.';
+      }
+      
+      showStatus(errorMessage, 'error');
     }
   }
 
@@ -126,7 +159,8 @@
       assignedIssues = issues;
       showStatus('Issues loaded successfully!', 'success');
     } catch (error: any) {
-      showStatus('Failed to load issues: ' + error.message, 'error');
+      const errorText = error?.message || error?.toString() || 'Unknown error';
+      showStatus('Failed to load issues: ' + errorText, 'error');
     }
   }
 
@@ -151,8 +185,9 @@
     showStatus('Submitting work log...', 'loading');
 
     try {
-      // Convert date to ISO format with time
-      const startedDateTime = new Date(workDate + 'T09:00:00.000Z').toISOString();
+      // Convert date to JIRA-compatible format: yyyy-MM-ddTHH:mm:ss.SSS+0000
+      const dateObj = new Date(workDate + 'T09:00:00.000');
+      const startedDateTime = dateObj.toISOString().replace('Z', '+0000');
       
       await invoke('create_worklog', {
         issueKey: issueKey,
@@ -168,7 +203,8 @@
       workLogForm.description = '';
       
     } catch (error: any) {
-      showStatus('Failed to submit work log: ' + error.message, 'error');
+      const errorText = error?.message || error?.toString() || 'Unknown error';
+      showStatus('Failed to submit work log: ' + errorText, 'error');
     }
   }
 
@@ -183,6 +219,7 @@
     assignedIssues = [];
     
     // Clear form fields
+    loginForm.email = '';
     loginForm.token = '';
     loginForm.baseUrl = '';
     workLogForm.issueKey = '';
@@ -194,15 +231,36 @@
 </script>
 
 <div class="min-h-screen w-screen overflow-hidden p-0 m-0 bg-slate-800">
-  <div class="min-h-screen w-full p-6 overflow-y-auto">
+  <div class="min-h-screen w-full p-6 overflow-y-scroll scrollbar-hide">
     
     <h1 class="text-center text-slate-200 mb-5 font-light text-3xl max-w-4xl mx-auto">
-      JIRA Work Log
+      Mini Jira Logger
     </h1>
 
     {#if !isLoggedIn}
       <!-- Login Section -->
       <div class="space-y-4 max-w-2xl mx-auto">
+        
+        <!-- Status Messages for Login - Fixed height container -->
+        <div class="min-h-[60px] flex items-center">
+          {#if status.visible}
+            <div class="w-full p-3 rounded-lg text-center font-medium text-sm transition-all {
+              status.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+              status.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+              'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+            }">
+              {#if status.type === 'loading'}
+                <div class="flex items-center justify-center gap-2">
+                  <div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                  {status.message}
+                </div>
+              {:else}
+                {status.message}
+              {/if}
+            </div>
+          {/if}
+        </div>
+        
         <div>
           <label for="jiraBaseUrl" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             JIRA Base URL
@@ -213,13 +271,28 @@
             type="url"
             bind:value={loginForm.baseUrl}
             placeholder="https://yourcompany.atlassian.net"
+            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            disabled
+            required
+          />
+        </div>
+
+        <div>
+          <label for="jiraEmail" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+            JIRA Email
+          </label>
+          
+          <input
+            id="jiraEmail"
+            type="email"
+            bind:value={loginForm.email}
+            placeholder="your.email@company.com"
             class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
             required
           />
         </div>
         
         <div>
-
           <label for="jiraAccessToken" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             JIRA Access Token
           </label>
@@ -232,30 +305,43 @@
             class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
             required
           />
+          <p class="text-xs text-slate-500 mt-1">
+            Generate an API token in your JIRA account settings → Security → API tokens (for Basic Auth with email).
+          </p>
         </div>
         
         <button
           onclick={handleLogin}
-          class="w-full p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-none rounded-lg text-sm font-semibold cursor-pointer uppercase tracking-wide mt-2 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/40 active:translate-y-0 transition-all"
+          disabled={status.visible && status.type === 'loading'}
+          class="w-full p-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white border-none rounded-lg text-sm font-semibold cursor-pointer uppercase tracking-wide mt-2 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/40 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
-          Connect to JIRA
+          {#if status.visible && status.type === 'loading'}
+            <div class="flex items-center justify-center gap-2">
+              <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Connecting...
+            </div>
+          {:else}
+            Connect to JIRA
+          {/if}
         </button>
       </div>
     {:else}
       <!-- Work Log Section -->
       <div class="space-y-4 max-w-2xl mx-auto">
         <div class="bg-blue-500/15 p-2.5 rounded-lg flex justify-between items-center">
-          <div class="flex flex-col">
-            <span class="text-purple-400 font-medium text-sm">Using Access Token</span>
-            {#if status.visible}
-              <span class="text-xs font-normal {
-                status.type === 'success' ? 'text-green-400' :
-                status.type === 'error' ? 'text-red-400' :
-                'text-blue-400'
-              }">
-                {status.message}
-              </span>
-            {/if}
+          <div class="flex flex-col min-h-[40px] justify-center">
+            <span class="text-purple-400 font-medium text-sm">{loginForm.email}</span>
+            <div class="min-h-[16px] flex items-start">
+              {#if status.visible}
+                <span class="text-xs font-normal {
+                  status.type === 'success' ? 'text-green-400' :
+                  status.type === 'error' ? 'text-red-400' :
+                  'text-blue-400'
+                }">
+                  {status.message}
+                </span>
+              {/if}
+            </div>
           </div>
           <button
             onclick={handleLogout}
@@ -285,7 +371,7 @@
           </select>
           <button
             onclick={handleRefreshIssues}
-            class="w-full p-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white border-none rounded-lg text-xs font-semibold cursor-pointer mt-2 hover:-translate-y-0.5 hover:shadow-md transition-all"
+            class="w-full p-2 bg-gradient-to-r from-orange-500 to-red-600 text-white border-none rounded-lg text-xs font-semibold cursor-pointer mt-2 hover:-translate-y-0.5 hover:shadow-md transition-all"
           >
             Refresh Issues
           </button>
@@ -349,7 +435,7 @@
         
         <button
           onclick={handleSubmitWorkLog}
-          class="w-full p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-none rounded-lg text-sm font-semibold cursor-pointer uppercase tracking-wide mt-2 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/40 active:translate-y-0 transition-all"
+          class="w-full p-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white border-none rounded-lg text-sm font-semibold cursor-pointer uppercase tracking-wide mt-2 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/40 active:translate-y-0 transition-all"
         >
           Log Work
         </button>

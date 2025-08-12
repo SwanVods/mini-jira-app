@@ -6,22 +6,30 @@ use crate::jira_types::*;
 #[derive(Clone)]
 pub struct JiraClient {
     pub base_url: String,
+    pub email: String,
     pub access_token: String,
     client: reqwest::Client,
 }
 
 impl JiraClient {
-    pub fn new(base_url: String, access_token: String) -> Self {
+    pub fn new(base_url: String, email: String, access_token: String) -> Self {
+        // Create client with SSL verification disabled for corporate environments
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .expect("Failed to create HTTP client");
+            
         Self {
             base_url,
+            email,
             access_token,
-            client: reqwest::Client::new(),
+            client,
         }
     }
 
     /// Get issues assigned to the current user
     pub async fn get_assigned_issues(&self) -> Result<Vec<JiraIssue>, Box<dyn std::error::Error>> {
-        let url = format!("{}/rest/api/3/issue/search", self.base_url);
+        let url = format!("{}/rest/api/3/search", self.base_url);
         
         let mut params = HashMap::new();
         params.insert("jql", "assignee=currentUser()");
@@ -30,7 +38,7 @@ impl JiraClient {
         let response = self.client
             .get(&url)
             .header("Accept", "application/json")
-            .header("Authorization", format!("Bearer {}", self.access_token))
+            .basic_auth(&self.email, Some(&self.access_token))
             .query(&params)
             .send()
             .await?;
@@ -75,7 +83,7 @@ impl JiraClient {
             .post(&url)
             .header("Accept", "application/json")
             .header("Content-Type", "application/json")
-            .header("Authorization", format!("Bearer {}", self.access_token))
+            .basic_auth(&self.email, Some(&self.access_token))
             .json(&worklog_request)
             .send()
             .await?;
@@ -124,7 +132,7 @@ impl JiraClient {
         let response = self.client
             .get(&url)
             .header("Accept", "application/json")
-            .header("Authorization", format!("Bearer {}", self.access_token))
+            .basic_auth(&self.email, Some(&self.access_token))
             .send()
             .await?;
 

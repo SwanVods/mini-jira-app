@@ -15,13 +15,14 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 async fn connect_to_jira(
     base_url: String,
+    email: String,
     access_token: String,
     state: State<'_, JiraState>,
 ) -> Result<bool, String> {
-    let client = JiraClient::new(base_url, access_token);
+    let client = JiraClient::new(base_url, email, access_token);
     
     // Test the connection
     match client.test_connection().await {
@@ -59,7 +60,7 @@ async fn get_assigned_issues(
     }
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 async fn create_worklog(
     issue_key: String,
     description: String,

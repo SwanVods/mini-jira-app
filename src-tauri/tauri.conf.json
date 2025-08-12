@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "mini-jira-app",
-        "width": 390,
-        "height": 630,
+        "width": 400,
+        "height": 670,
         "resizable": false
       }
     ],
