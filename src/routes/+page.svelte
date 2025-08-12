@@ -1,10 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { invoke } from '@tauri-apps/api/core';
   import '../app.css'
 
   interface Issue {
     key: string;
-    summary: string;
+    fields: {
+      summary: string;
+      status: {
+        name: string;
+      };
+      assignee?: {
+        display_name: string;
+        email_address: string;
+      };
+    };
   }
 
   interface Status {
@@ -14,6 +24,7 @@
   }
 
   interface LoginForm {
+    baseUrl: string;
     token: string;
   }
 
@@ -27,14 +38,12 @@
 
   // State variables
   let isLoggedIn = $state(false);
-  let userEmail = $state('');
-  let accessToken = $state('');
-  let jiraBaseUrl = $state('');
   let assignedIssues = $state<Issue[]>([]);
   let status = $state<Status>({ message: '', type: '', visible: false });
 
   // Form states
   let loginForm = $state<LoginForm>({
+    baseUrl: '',
     token: '',
   });
 
@@ -56,6 +65,9 @@
     if (saved.token) {
       loginForm.token = saved.token;
     }
+    if (saved.baseUrl) {
+      loginForm.baseUrl = saved.baseUrl;
+    }
   });
 
   function showStatus(message: string, type = 'loading') {
@@ -68,44 +80,10 @@
     }
   }
 
-  async function simulateJiraLogin(): Promise<boolean> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return true;
-  }
-
-  async function simulateLoadIssues(): Promise<Issue[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Mock data - replace with actual JIRA API integration
-    return [
-      { key: 'PROJ-123', summary: 'Implement user authentication' },
-      { key: 'PROJ-124', summary: 'Fix login page styling' },
-      { key: 'PROJ-125', summary: 'Add error handling for API calls' },
-      { key: 'PROJ-126', summary: 'Update documentation' },
-      { key: 'PROJ-127', summary: 'Performance optimization' }
-    ];
-  }
-
-  async function simulateSubmitWorkLog(issueKey: string, date: string, timeSpent: string, description: string): Promise<boolean> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Work log data:', {
-      issueKey,
-      date,
-      timeSpent,
-      description
-    });
-    
-    return true;
-  }
-
   async function handleLogin() {
-    const { token } = loginForm;
+    const { baseUrl, token } = loginForm;
 
-    if (!token) {
+    if (!baseUrl || !token) {
       showStatus('Please fill in all fields', 'error');
       return;
     }
@@ -113,22 +91,27 @@
     showStatus('Connecting to JIRA...', 'loading');
 
     try {
-      // Save credentials
-      accessToken = token;
+      // Call Rust function to connect to JIRA
+      const isConnected = await invoke<boolean>('connect_to_jira', {
+        baseUrl: baseUrl.replace(/\/$/, ''), // Remove trailing slash
+        accessToken: token
+      });
 
-      // Save to localStorage for convenience (demo only)
-      localStorage.setItem('jiraCredentials', JSON.stringify({
-        token: token
-      }));
+      if (isConnected) {
+        // Save credentials
+        localStorage.setItem('jiraCredentials', JSON.stringify({
+          token: token,
+          baseUrl: baseUrl
+        }));
 
-      // Simulate API call
-      await simulateJiraLogin();
-      
-      // Load assigned issues
-      await loadAssignedIssues();
-      
-      isLoggedIn = true;
-      showStatus('Successfully connected to JIRA!', 'success');
+        // Load assigned issues
+        await loadAssignedIssues();
+        
+        isLoggedIn = true;
+        showStatus('Successfully connected to JIRA!', 'success');
+      } else {
+        showStatus('Failed to connect to JIRA', 'error');
+      }
       
     } catch (error: any) {
       showStatus('Failed to connect: ' + error.message, 'error');
@@ -139,7 +122,7 @@
     showStatus('Loading assigned issues...', 'loading');
     
     try {
-      const issues = await simulateLoadIssues();
+      const issues = await invoke<Issue[]>('get_assigned_issues');
       assignedIssues = issues;
       showStatus('Issues loaded successfully!', 'success');
     } catch (error: any) {
@@ -148,7 +131,7 @@
   }
 
   async function handleRefreshIssues() {
-    if (!userEmail || !accessToken) {
+    if (!isLoggedIn) {
       showStatus('Please login first', 'error');
       return;
     }
@@ -168,7 +151,16 @@
     showStatus('Submitting work log...', 'loading');
 
     try {
-      await simulateSubmitWorkLog(issueKey, workDate, timeSpent, description);
+      // Convert date to ISO format with time
+      const startedDateTime = new Date(workDate + 'T09:00:00.000Z').toISOString();
+      
+      await invoke('create_worklog', {
+        issueKey: issueKey,
+        description: description,
+        started: startedDateTime,
+        timeSpent: timeSpent
+      });
+      
       showStatus('Work log submitted successfully!', 'success');
       
       // Reset form
@@ -180,13 +172,19 @@
     }
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      await invoke('disconnect_from_jira');
+    } catch (error) {
+      console.warn('Error disconnecting:', error);
+    }
+    
     isLoggedIn = false;
-    accessToken = '';
     assignedIssues = [];
     
     // Clear form fields
     loginForm.token = '';
+    loginForm.baseUrl = '';
     workLogForm.issueKey = '';
     workLogForm.timeAmount = '';
     workLogForm.description = '';
@@ -206,12 +204,28 @@
       <!-- Login Section -->
       <div class="space-y-4 max-w-2xl mx-auto">
         <div>
-          <!-- svelte-ignore a11y_label_has_associated_control -->
-          <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="jiraBaseUrl" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+            JIRA Base URL
+          </label>
+          
+          <input
+            id="jiraBaseUrl"
+            type="url"
+            bind:value={loginForm.baseUrl}
+            placeholder="https://yourcompany.atlassian.net"
+            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+            required
+          />
+        </div>
+        
+        <div>
+
+          <label for="jiraAccessToken" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             JIRA Access Token
           </label>
           
           <input
+            id="jiraAccessToken"
             type="password"
             bind:value={loginForm.token}
             placeholder="Your JIRA access token"
@@ -252,11 +266,12 @@
         </div>
 
         <div>
-          <!-- svelte-ignore a11y_label_has_associated_control -->
-          <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+
+          <label for="issueKey" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             JIRA Issue
           </label>
           <select
+            id="issueKey"
             bind:value={workLogForm.issueKey}
             class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 cursor-pointer focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
             required
@@ -264,7 +279,7 @@
             <option value="">Select an issue...</option>
             {#each assignedIssues as issue}
               <option value={issue.key}>
-                {issue.key} - {issue.summary}
+                {issue.key} - {issue.fields.summary}
               </option>
             {/each}
           </select>
@@ -277,10 +292,11 @@
         </div>
         
         <div>
-          <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="workDate" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             Date
           </label>
           <input
+            id="workDate"
             type="date"
             bind:value={workLogForm.workDate}
             class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
@@ -289,12 +305,13 @@
         </div>
         
         <div>
-          <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="timeAmount" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             Time Spent
           </label>
           <div class="flex gap-2">
             <div class="flex-[2]">
               <input
+                id="timeAmount"
                 type="number"
                 bind:value={workLogForm.timeAmount}
                 placeholder="1"
@@ -318,10 +335,11 @@
         </div>
         
         <div>
-          <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="workDescription" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             Work Description
           </label>
           <textarea
+            id="workDescription"
             bind:value={workLogForm.description}
             placeholder="Describe the work you performed..."
             class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 resize-vertical min-h-[70px] font-inherit focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
