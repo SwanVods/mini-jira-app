@@ -1,6 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import { listen } from '@tauri-apps/api/event';
+  import { 
+    isPermissionGranted, 
+    requestPermission, 
+    sendNotification 
+  } from '@tauri-apps/plugin-notification';
   import '../app.css'
 
   interface Issue {
@@ -42,6 +48,9 @@
   let assignedIssues = $state<Issue[]>([]);
   let status = $state<Status>({ message: '', type: '', visible: false });
 
+  // Debug mode - only show background controls in development
+  const isDebugMode = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
   // Form states
   let loginForm = $state<LoginForm>({
     baseUrl: 'https://ariefgraifhan.atlassian.net',
@@ -73,7 +82,48 @@
     if (saved.baseUrl) {
       loginForm.baseUrl = saved.baseUrl;
     }
+
+    // Setup notification permissions
+    setupNotifications();
+
+    // Listen for daily reminder events from Rust
+    listen('daily-reminder', () => {
+      sendDailyReminder();
+    });
+
+    // Listen for test notification events from system tray
+    listen('test-notification', () => {
+      handleTestNotification();
+    });
   });
+
+  async function setupNotifications() {
+    try {
+      let permissionGranted = await isPermissionGranted();
+      
+      if (!permissionGranted) {
+        const permission = await requestPermission();
+        permissionGranted = permission === 'granted';
+      }
+
+      if (!permissionGranted) {
+        console.warn('Notification permission not granted');
+      }
+    } catch (error) {
+      console.error('Error setting up notifications:', error);
+    }
+  }
+
+  async function sendDailyReminder() {
+    try {
+      await sendNotification({
+        title: 'JIRA Work Log Reminder',
+        body: 'Ayo catat kerjaanmu! Jangan lupa masukin worklog jira harian, ya.'
+      });
+    } catch (error) {
+      console.error('Error sending daily reminder:', error);
+    }
+  }
 
   function showStatus(message: string, type = 'loading') {
     status = { message, type, visible: true };
@@ -228,6 +278,28 @@
     
     status = { message: '', type: '', visible: false };
   }
+
+  async function handleHideToTray() {
+    try {
+      await invoke('hide_to_tray');
+      showStatus('App minimized to system tray', 'success');
+    } catch (error) {
+      console.error('Error hiding to tray:', error);
+    }
+  }
+
+  async function handleTestNotification() {
+    try {
+      await sendNotification({
+        title: 'JIRA Work Log',
+        body: 'Test notification - Background functionality is working!'
+      });
+      showStatus('Test notification sent!', 'success');
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      showStatus('Failed to send notification', 'error');
+    }
+  }
 </script>
 
 <div class="min-h-screen w-screen overflow-hidden p-0 m-0 bg-slate-800">
@@ -306,7 +378,7 @@
             required
           />
           <p class="text-xs text-slate-500 mt-1">
-            Generate an API token in your JIRA account settings → Security → API tokens (for Basic Auth with email).
+            Generate an API token in your JIRA account settings → Security → API tokens.
           </p>
         </div>
         
@@ -350,6 +422,32 @@
             Logout
           </button>
         </div>
+
+        <!-- Background Controls Section (Debug Mode Only) -->
+        {#if isDebugMode}
+          <div class="bg-slate-700/50 p-3 rounded-lg">
+            <h3 class="text-slate-300 font-medium text-sm mb-3 uppercase tracking-wide">Background Controls</h3>
+            <div class="flex gap-2 flex-wrap">
+              <button
+                onclick={handleHideToTray}
+                class="flex-1 p-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white border-none rounded-lg text-xs font-semibold cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all"
+              >
+                Hide to Tray
+              </button>
+              <button
+                onclick={handleTestNotification}
+                class="flex-1 p-2 bg-gradient-to-r from-green-600 to-green-700 text-white border-none rounded-lg text-xs font-semibold cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all"
+              >
+                Test Notification
+              </button>
+            </div>
+            <p class="text-xs text-slate-400 mt-2">
+              • App runs in background when closed<br>
+              • Daily reminder at 5 PM<br>
+              • Access via system tray icon
+            </p>
+          </div>
+        {/if}
 
         <div>
 

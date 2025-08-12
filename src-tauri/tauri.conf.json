@@ -6,16 +6,25 @@
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "bun run build:release",
     "frontendDist": "../build"
   },
   "app": {
+    "trayIcon": {
+      "id": "main",
+      "iconPath": "icons/icon.ico",
+      "iconAsTemplate": false,
+      "tooltip": "Mini Jira App"
+    },
     "windows": [
       {
         "title": "mini-jira-app",
         "width": 400,
         "height": 670,
-        "resizable": false
+        "resizable": false,
+        "visible": true,
+        "closable": true,
+        "skipTaskbar": false
       }
     ],
     "security": {
