@@ -287,7 +287,7 @@
 </script>
 
 <div class="min-h-screen w-screen overflow-hidden p-0 m-0 bg-slate-800">
-  <div class="min-h-screen w-full p-6 overflow-y-scroll scrollbar-hide">
+  <div class="min-h-screen w-full p-6 overflow-y-scroll scrollbar-hide {!isLoggedIn ? 'flex flex-col' : ''}">
     
     <h1 class="text-center text-slate-200 mb-5 font-light text-3xl max-w-4xl mx-auto">
       Mini Jira Logger
@@ -295,7 +295,8 @@
 
     {#if !isLoggedIn}
       <!-- Login Section -->
-      <div class="space-y-4 max-w-2xl mx-auto">
+      <div class="flex-1 flex flex-col justify-center">
+        <div class="space-y-4 max-w-2xl mx-auto w-full">
         <div class="min-h-[60px] flex items-center">
           {#if status.visible}
             <div class="w-full p-3 rounded-lg text-center font-medium text-sm transition-all {
@@ -380,6 +381,14 @@
             Connect to JIRA
           {/if}
         </button>
+        </div>
+      </div>
+      
+      <!-- Footer - Sticky to bottom -->
+      <div class="text-center py-4 border-t border-slate-700/50 mt-auto">
+        <p class="text-xs text-slate-500">
+          Made with <span class="text-orange-500 font-semibold">anger</span> by ariefg 🔥
+        </p>
       </div>
     {:else}
       <!-- Work Log Section -->
