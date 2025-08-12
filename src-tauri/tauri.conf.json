@@ -33,13 +33,35 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["msi", "nsis", "app"],
+    "createUpdaterArtifacts": false,
+    "publisher": "Arief Graifhan",
+    "copyright": "Copyright © 2025 Arief Graifhan",
+    "category": "Productivity",
+    "shortDescription": "Mini JIRA Work Logger",
+    "longDescription": "A portable desktop application for logging work to JIRA with background notifications and system tray integration.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "allowDowngrades": false,
+      "wix": null,
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine",
+        "languages": ["English"]
+      }
+    }
   }
 }

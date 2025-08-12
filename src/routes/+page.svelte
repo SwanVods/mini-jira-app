@@ -53,7 +53,7 @@
 
   // Form states
   let loginForm = $state<LoginForm>({
-    baseUrl: 'https://ariefgraifhan.atlassian.net',
+    baseUrl: '',
     email: '',
     token: '',
   });
@@ -342,11 +342,13 @@
             id="jiraBaseUrl"
             type="url"
             bind:value={loginForm.baseUrl}
-            placeholder="https://yourcompany.atlassian.net"
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            disabled
+            placeholder="https://yourcompany.domain.net"
+            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
             required
           />
+          <p class="text-xs text-slate-500 mt-1">
+            Your company domain
+          </p>
         </div>
 
         <div>

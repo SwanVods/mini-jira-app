@@ -14,8 +14,9 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "tauri:build:no-bundle": "tauri build --no-bundle",
     "tauri:build:debug": "tauri build --debug",
-    "tauri:build:release": "tauri build"
+    "tauri:build:all": "tauri build --bundles msi,nsis"
   },
   "license": "MIT",
   "dependencies": {
