@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import '../app.css'
 
   interface Issue {
     key: string;
@@ -226,39 +227,15 @@
       <!-- Login Section -->
       <div class="space-y-4 max-w-2xl mx-auto">
         <div>
-          <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
-            Email
-          </label>
-          <input
-            type="email"
-            bind:value={loginForm.email}
-            placeholder="your.email@company.com"
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
-            required
-          />
-        </div>
-
-        <div>
+          <!-- svelte-ignore a11y_label_has_associated_control -->
           <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             JIRA Base URL
           </label>
+          
           <input
             type="url"
             bind:value={loginForm.jiraUrl}
             placeholder="https://yourcompany.atlassian.net"
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
-            required
-          />
-        </div>
-
-        <div>
-          <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
-            Access Token / API Key
-          </label>
-          <input
-            type="password"
-            bind:value={loginForm.token}
-            placeholder="Your JIRA access token"
             class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
             required
           />
@@ -285,6 +262,7 @@
         </div>
 
         <div>
+          <!-- svelte-ignore a11y_label_has_associated_control -->
           <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
             JIRA Issue
           </label>
