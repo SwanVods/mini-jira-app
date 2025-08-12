@@ -46,6 +46,7 @@
   let isLoggedIn = $state(false);
   let assignedIssues = $state<Issue[]>([]);
   let status = $state<Status>({ message: '', type: '', visible: false });
+  let isDarkMode = $state(true);
 
   const isDebugMode = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
@@ -76,6 +77,11 @@
     }
     if (saved.baseUrl) {
       loginForm.baseUrl = saved.baseUrl;
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      isDarkMode = savedTheme === 'dark';
     }
 
     setupNotifications();
@@ -284,12 +290,34 @@
       showStatus('Failed to send notification', 'error');
     }
   }
+
+  function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+  }
 </script>
 
-<div class="min-h-screen w-screen overflow-hidden p-0 m-0 bg-slate-800">
+<div class="min-h-screen w-screen overflow-hidden p-0 m-0 {isDarkMode ? 'bg-slate-800' : 'bg-gray-50'}">
   <div class="min-h-screen w-full p-6 overflow-y-scroll scrollbar-hide {!isLoggedIn ? 'flex flex-col' : ''}">
     
-    <h1 class="text-center text-slate-200 mb-5 font-light text-3xl max-w-4xl mx-auto">
+    <!-- Theme Toggle Button -->
+    <div class="absolute top-4 right-4 z-10">
+      <button
+        onclick={toggleTheme}
+        class="p-2 rounded-lg border transition-all {isDarkMode 
+          ? 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600' 
+          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}"
+        title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      >
+        {#if isDarkMode}
+          ☀️
+        {:else}
+          🌙
+        {/if}
+      </button>
+    </div>
+
+    <h1 class="text-center mb-5 font-light text-3xl max-w-4xl mx-auto {isDarkMode ? 'text-slate-200' : 'text-gray-800'}">
       Mini Jira Logger
     </h1>
 
@@ -300,13 +328,13 @@
         <div class="min-h-[60px] flex items-center">
           {#if status.visible}
             <div class="w-full p-3 rounded-lg text-center font-medium text-sm transition-all {
-              status.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-              status.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-              'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+              status.type === 'success' ? (isDarkMode ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-green-100 text-green-700 border border-green-300') :
+              status.type === 'error' ? (isDarkMode ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-red-100 text-red-700 border border-red-300') :
+              (isDarkMode ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-blue-100 text-blue-700 border border-blue-300')
             }">
               {#if status.type === 'loading'}
                 <div class="flex items-center justify-center gap-2">
-                  <div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                  <div class="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin {isDarkMode ? 'border-blue-400' : 'border-blue-600'}"></div>
                   {status.message}
                 </div>
               {:else}
@@ -317,7 +345,7 @@
         </div>
         
         <div>
-          <label for="jiraBaseUrl" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="jiraBaseUrl" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
             JIRA Base URL
           </label>
           
@@ -326,16 +354,18 @@
             type="url"
             bind:value={loginForm.baseUrl}
             placeholder="https://yourcompany.domain.net"
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+            class="w-full p-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:shadow-lg {isDarkMode 
+              ? 'border-slate-600 bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
+              : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:shadow-blue-500/10'}"
             required
           />
-          <p class="text-xs text-slate-500 mt-1">
+          <p class="text-xs mt-1 {isDarkMode ? 'text-slate-500' : 'text-gray-500'}">
             Your company domain
           </p>
         </div>
 
         <div>
-          <label for="jiraEmail" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="jiraEmail" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
             JIRA Email
           </label>
           
@@ -344,13 +374,15 @@
             type="email"
             bind:value={loginForm.email}
             placeholder="your.email@company.com"
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+            class="w-full p-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:shadow-lg {isDarkMode 
+              ? 'border-slate-600 bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
+              : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:shadow-blue-500/10'}"
             required
           />
         </div>
         
         <div>
-          <label for="jiraAccessToken" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="jiraAccessToken" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
             JIRA Access Token
           </label>
           
@@ -359,10 +391,12 @@
             type="password"
             bind:value={loginForm.token}
             placeholder="Your JIRA access token"
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+            class="w-full p-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:shadow-lg {isDarkMode 
+              ? 'border-slate-600 bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
+              : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:shadow-blue-500/10'}"
             required
           />
-          <p class="text-xs text-slate-500 mt-1">
+          <p class="text-xs mt-1 {isDarkMode ? 'text-slate-500' : 'text-gray-500'}">
             Generate an API token in your JIRA account settings → Security → API tokens.
           </p>
         </div>
@@ -385,23 +419,23 @@
       </div>
       
       <!-- Footer - Sticky to bottom -->
-      <div class="text-center py-4 border-t border-slate-700/50 mt-auto">
-        <p class="text-xs text-slate-500">
+      <div class="text-center py-4 border-t mt-auto {isDarkMode ? 'border-slate-700/50' : 'border-gray-200'}">
+        <p class="text-xs {isDarkMode ? 'text-slate-500' : 'text-gray-500'}">
           Crafted with <span class="text-orange-800 font-semibold">chaos</span> and <span class="text-[#8B4513] font-semibold">coffee</span> by ariefg ☕
         </p>
       </div>
     {:else}
       <!-- Work Log Section -->
       <div class="space-y-4 max-w-2xl mx-auto">
-        <div class="bg-blue-500/15 p-2.5 rounded-lg flex justify-between items-center">
+        <div class="p-2.5 rounded-lg flex justify-between items-center {isDarkMode ? 'bg-blue-500/15' : 'bg-blue-50 border border-blue-200'}">
           <div class="flex flex-col min-h-[40px] justify-center">
-            <span class="text-purple-400 font-medium text-sm">{loginForm.email}</span>
+            <span class="font-medium text-sm {isDarkMode ? 'text-purple-400' : 'text-purple-600'}">{loginForm.email}</span>
             <div class="min-h-[16px] flex items-start">
               {#if status.visible}
                 <span class="text-xs font-normal {
-                  status.type === 'success' ? 'text-green-400' :
-                  status.type === 'error' ? 'text-red-400' :
-                  'text-blue-400'
+                  status.type === 'success' ? (isDarkMode ? 'text-green-400' : 'text-green-600') :
+                  status.type === 'error' ? (isDarkMode ? 'text-red-400' : 'text-red-600') :
+                  (isDarkMode ? 'text-blue-400' : 'text-blue-600')
                 }">
                   {status.message}
                 </span>
@@ -410,7 +444,9 @@
           </div>
           <button
             onclick={handleLogout}
-            class="bg-transparent border border-red-400 text-red-400 px-3 py-1 rounded-2xl cursor-pointer text-xs hover:bg-red-400 hover:text-slate-800 transition-all"
+            class="border px-3 py-1 rounded-2xl cursor-pointer text-xs transition-all {isDarkMode 
+              ? 'bg-transparent border-red-400 text-red-400 hover:bg-red-400 hover:text-slate-800' 
+              : 'bg-transparent border-red-500 text-red-500 hover:bg-red-500 hover:text-white'}"
           >
             Logout
           </button>
@@ -418,12 +454,14 @@
 
         <!-- Background Controls Section (Debug Mode Only) -->
         {#if isDebugMode}
-          <div class="bg-slate-700/50 p-3 rounded-lg">
-            <h3 class="text-slate-300 font-medium text-sm mb-3 uppercase tracking-wide">Background Controls</h3>
+          <div class="p-3 rounded-lg {isDarkMode ? 'bg-slate-700/50' : 'bg-gray-100 border border-gray-200'}">
+            <h3 class="font-medium text-sm mb-3 uppercase tracking-wide {isDarkMode ? 'text-slate-300' : 'text-gray-700'}">Background Controls</h3>
             <div class="flex gap-2 flex-wrap">
               <button
                 onclick={handleHideToTray}
-                class="flex-1 p-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white border-none rounded-lg text-xs font-semibold cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all"
+                class="flex-1 p-2 border-none rounded-lg text-xs font-semibold cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all {isDarkMode 
+                  ? 'bg-gradient-to-r from-slate-600 to-slate-700 text-white' 
+                  : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'}"
               >
                 Hide to Tray
               </button>
@@ -434,7 +472,7 @@
                 Test Notification
               </button>
             </div>
-            <p class="text-xs text-slate-400 mt-2">
+            <p class="text-xs mt-2 {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
               • App runs in background when closed<br>
               • Daily reminder at 5 PM<br>
               • Access via system tray icon
@@ -444,13 +482,15 @@
 
         <div>
 
-          <label for="issueKey" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="issueKey" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
             JIRA Issue
           </label>
           <select
             id="issueKey"
             bind:value={workLogForm.issueKey}
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 cursor-pointer focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+            class="w-full p-2.5 border rounded-lg text-sm cursor-pointer transition-all focus:outline-none focus:shadow-lg {isDarkMode 
+              ? 'border-slate-600 bg-slate-700/80 text-slate-200 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
+              : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:shadow-blue-500/10'}"
             required
           >
             <option value="">Select an issue...</option>
@@ -469,20 +509,22 @@
         </div>
         
         <div>
-          <label for="workDate" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="workDate" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
             Date
           </label>
           <input
             id="workDate"
             type="date"
             bind:value={workLogForm.workDate}
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+            class="w-full p-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:shadow-lg {isDarkMode 
+              ? 'border-slate-600 bg-slate-700/80 text-slate-200 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
+              : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:shadow-blue-500/10'}"
             required
           />
         </div>
         
         <div>
-          <label for="timeAmount" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="timeAmount" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
             Time Spent
           </label>
           <div class="flex gap-2">
@@ -494,14 +536,18 @@
                 placeholder="1"
                 min="0.25"
                 step="0.25"
-                class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                class="w-full p-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:shadow-lg {isDarkMode 
+                  ? 'border-slate-600 bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
+                  : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:shadow-blue-500/10'}"
                 required
               />
             </div>
             <div class="flex-1">
               <select
                 bind:value={workLogForm.timeUnit}
-                class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 cursor-pointer focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                class="w-full p-2.5 border rounded-lg text-sm cursor-pointer transition-all focus:outline-none focus:shadow-lg {isDarkMode 
+                  ? 'border-slate-600 bg-slate-700/80 text-slate-200 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
+                  : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:shadow-blue-500/10'}"
               >
                 <option value="h">Hours</option>
                 <option value="m">Minutes</option>
@@ -512,14 +558,16 @@
         </div>
         
         <div>
-          <label for="workDescription" class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
+          <label for="workDescription" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
             Work Description
           </label>
           <textarea
             id="workDescription"
             bind:value={workLogForm.description}
             placeholder="Describe the work you performed..."
-            class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 resize-vertical min-h-[70px] font-inherit focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+            class="w-full p-2.5 border rounded-lg text-sm resize-vertical min-h-[70px] font-inherit transition-all focus:outline-none focus:shadow-lg {isDarkMode 
+              ? 'border-slate-600 bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
+              : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:shadow-blue-500/10'}"
             required
           ></textarea>
         </div>
