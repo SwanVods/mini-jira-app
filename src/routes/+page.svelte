@@ -14,9 +14,7 @@
   }
 
   interface LoginForm {
-    email: string;
     token: string;
-    jiraUrl: string;
   }
 
   interface WorkLogForm {
@@ -37,9 +35,7 @@
 
   // Form states
   let loginForm = $state<LoginForm>({
-    email: '',
     token: '',
-    jiraUrl: ''
   });
 
   let workLogForm = $state<WorkLogForm>({
@@ -57,9 +53,8 @@
     
     // Load saved credentials (for demo purposes)
     const saved = JSON.parse(localStorage.getItem('jiraCredentials') || '{}');
-    if (saved.email) {
-      loginForm.email = saved.email;
-      loginForm.jiraUrl = saved.jiraUrl || '';
+    if (saved.token) {
+      loginForm.token = saved.token;
     }
   });
 
@@ -108,9 +103,9 @@
   }
 
   async function handleLogin() {
-    const { email, token, jiraUrl } = loginForm;
+    const { token } = loginForm;
 
-    if (!email || !token || !jiraUrl) {
+    if (!token) {
       showStatus('Please fill in all fields', 'error');
       return;
     }
@@ -119,14 +114,11 @@
 
     try {
       // Save credentials
-      userEmail = email;
       accessToken = token;
-      jiraBaseUrl = jiraUrl.replace(/\/$/, '');
 
       // Save to localStorage for convenience (demo only)
       localStorage.setItem('jiraCredentials', JSON.stringify({
-        email: email,
-        jiraUrl: jiraUrl
+        token: token
       }));
 
       // Simulate API call
@@ -190,9 +182,7 @@
 
   function handleLogout() {
     isLoggedIn = false;
-    userEmail = '';
     accessToken = '';
-    jiraBaseUrl = '';
     assignedIssues = [];
     
     // Clear form fields
@@ -212,30 +202,19 @@
       JIRA Work Log
     </h1>
 
-    <!-- Status Messages -->
-    {#if status.visible}
-      <div class="p-2 rounded-md mb-4 text-center font-medium text-sm transition-all max-w-4xl mx-auto {
-        status.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-        status.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-        'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-      }">
-        {status.message}
-      </div>
-    {/if}
-
     {#if !isLoggedIn}
       <!-- Login Section -->
       <div class="space-y-4 max-w-2xl mx-auto">
         <div>
           <!-- svelte-ignore a11y_label_has_associated_control -->
           <label class="block mb-1.5 text-slate-400 font-medium text-sm uppercase tracking-wide">
-            JIRA Base URL
+            JIRA Access Token
           </label>
           
           <input
-            type="url"
-            bind:value={loginForm.jiraUrl}
-            placeholder="https://yourcompany.atlassian.net"
+            type="password"
+            bind:value={loginForm.token}
+            placeholder="Your JIRA access token"
             class="w-full p-2.5 border border-slate-600 rounded-lg text-sm bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
             required
           />
@@ -252,7 +231,18 @@
       <!-- Work Log Section -->
       <div class="space-y-4 max-w-2xl mx-auto">
         <div class="bg-blue-500/15 p-2.5 rounded-lg flex justify-between items-center">
-          <span class="text-purple-400 font-medium text-sm">{userEmail}</span>
+          <div class="flex flex-col">
+            <span class="text-purple-400 font-medium text-sm">Connected</span>
+            {#if status.visible}
+              <span class="text-xs font-normal {
+                status.type === 'success' ? 'text-green-400' :
+                status.type === 'error' ? 'text-red-400' :
+                'text-blue-400'
+              }">
+                {status.message}
+              </span>
+            {/if}
+          </div>
           <button
             onclick={handleLogout}
             class="bg-transparent border border-red-400 text-red-400 px-3 py-1 rounded-2xl cursor-pointer text-xs hover:bg-red-400 hover:text-slate-800 transition-all"
