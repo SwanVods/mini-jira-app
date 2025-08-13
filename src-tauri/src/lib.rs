@@ -38,11 +38,10 @@ fn greet(name: &str) -> String {
 #[tauri::command(rename_all = "camelCase")]
 async fn connect_to_jira(
     base_url: String,
-    email: String,
     access_token: String,
     state: State<'_, JiraState>,
 ) -> Result<bool, String> {
-    let client = JiraClient::new(base_url, email, access_token);
+    let client = JiraClient::new(base_url, access_token);
     
     match client.test_connection().await {
         Ok(is_connected) => {

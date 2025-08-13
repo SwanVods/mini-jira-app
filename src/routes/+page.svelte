@@ -31,7 +31,6 @@
 
   interface LoginForm {
     baseUrl: string;
-    email: string;
     token: string;
   }
 
@@ -52,7 +51,6 @@
 
   let loginForm = $state<LoginForm>({
     baseUrl: '',
-    email: '',
     token: '',
   });
 
@@ -71,9 +69,6 @@
     const saved = JSON.parse(localStorage.getItem('jiraCredentials') || '{}');
     if (saved.token) {
       loginForm.token = saved.token;
-    }
-    if (saved.email) {
-      loginForm.email = saved.email;
     }
     if (saved.baseUrl) {
       loginForm.baseUrl = saved.baseUrl;
@@ -134,9 +129,9 @@
   }
 
   async function handleLogin() {
-    const { baseUrl, email, token } = loginForm;
+    const { baseUrl, token } = loginForm;
 
-    if (!baseUrl || !email || !token) {
+    if (!baseUrl || !token) {
       showStatus('Please fill in all fields', 'error');
       return;
     }
@@ -146,13 +141,11 @@
     try {
       const isConnected = await invoke<boolean>('connect_to_jira', {
         baseUrl: baseUrl.replace(/\/$/, ''),
-        email: email,
         accessToken: token
       });
 
       if (isConnected) {
         localStorage.setItem('jiraCredentials', JSON.stringify({
-          email: email,
           token: token,
           baseUrl: baseUrl
         }));
@@ -258,8 +251,6 @@
     
     isLoggedIn = false;
     assignedIssues = [];
-    
-    loginForm.email = '';
     loginForm.token = '';
     loginForm.baseUrl = '';
     workLogForm.issueKey = '';
@@ -365,23 +356,6 @@
         </div>
 
         <div>
-          <label for="jiraEmail" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
-            JIRA Email
-          </label>
-          
-          <input
-            id="jiraEmail"
-            type="email"
-            bind:value={loginForm.email}
-            placeholder="your.email@company.com"
-            class="w-full p-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:shadow-lg {isDarkMode 
-              ? 'border-slate-600 bg-slate-700/80 text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:bg-slate-700 focus:shadow-blue-500/10' 
-              : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:shadow-blue-500/10'}"
-            required
-          />
-        </div>
-        
-        <div>
           <label for="jiraAccessToken" class="block mb-1.5 font-medium text-sm uppercase tracking-wide {isDarkMode ? 'text-slate-400' : 'text-gray-600'}">
             JIRA Access Token
           </label>
@@ -429,7 +403,7 @@
       <div class="space-y-4 max-w-2xl mx-auto">
         <div class="p-2.5 rounded-lg flex justify-between items-center {isDarkMode ? 'bg-blue-500/15' : 'bg-blue-50 border border-blue-200'}">
           <div class="flex flex-col min-h-[40px] justify-center">
-            <span class="font-medium text-sm {isDarkMode ? 'text-purple-400' : 'text-purple-600'}">{loginForm.email}</span>
+            <span class="font-medium text-sm {isDarkMode ? 'text-purple-400' : 'text-purple-600'}">Logged in!</span>
             <div class="min-h-[16px] flex items-start">
               {#if status.visible}
                 <span class="text-xs font-normal {

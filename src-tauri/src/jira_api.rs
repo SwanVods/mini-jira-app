@@ -6,13 +6,12 @@ use crate::jira_types::*;
 #[derive(Clone)]
 pub struct JiraClient {
     pub base_url: String,
-    pub email: String,
     pub access_token: String,
     client: reqwest::Client,
 }
 
 impl JiraClient {
-    pub fn new(base_url: String, email: String, access_token: String) -> Self {
+    pub fn new(base_url: String, access_token: String) -> Self {
         let client = reqwest::Client::builder()
             .danger_accept_invalid_certs(true)
             .build()
@@ -20,14 +19,13 @@ impl JiraClient {
             
         Self {
             base_url,
-            email,
             access_token,
             client,
         }
     }
 
     pub async fn get_assigned_issues(&self) -> Result<Vec<JiraIssue>, Box<dyn std::error::Error>> {
-        let url = format!("{}/rest/api/3/search", self.base_url);
+        let url = format!("{}/rest/api/2/search", self.base_url);
         
         let mut params = HashMap::new();
         params.insert("jql", "assignee=currentUser()");
@@ -36,7 +34,7 @@ impl JiraClient {
         let response = self.client
             .get(&url)
             .header("Accept", "application/json")
-            .basic_auth(&self.email, Some(&self.access_token))
+            .header("Authorization", format!("Bearer {}", self.access_token))
             .query(&params)
             .send()
             .await?;
@@ -57,7 +55,7 @@ impl JiraClient {
         time_spent_seconds: u32,
         visibility: Option<WorklogVisibility>,
     ) -> Result<WorklogResponse, Box<dyn std::error::Error>> {
-        let url = format!("{}/rest/api/3/issue/{}/worklog", self.base_url, issue_key);
+        let url = format!("{}/rest/api/2/issue/{}/worklog", self.base_url, issue_key);
         
         let worklog_request = WorklogRequest {
             comment: WorklogComment {
@@ -80,7 +78,7 @@ impl JiraClient {
             .post(&url)
             .header("Accept", "application/json")
             .header("Content-Type", "application/json")
-            .basic_auth(&self.email, Some(&self.access_token))
+            .header("Authorization", format!("Bearer {}", self.access_token))
             .json(&worklog_request)
             .send()
             .await?;
@@ -122,12 +120,12 @@ impl JiraClient {
     }
 
     pub async fn test_connection(&self) -> Result<bool, Box<dyn std::error::Error>> {
-        let url = format!("{}/rest/api/3/myself", self.base_url);
+        let url = format!("{}/rest/api/2/myself", self.base_url);
         
         let response = self.client
             .get(&url)
             .header("Accept", "application/json")
-            .basic_auth(&self.email, Some(&self.access_token))
+            .header("Authorization", format!("Bearer {}", self.access_token))
             .send()
             .await?;
 
