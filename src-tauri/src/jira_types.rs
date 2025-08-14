@@ -67,11 +67,10 @@ pub struct WorklogVisibility {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorklogRequest {
-    pub comment: WorklogComment,
+    pub comment: String,
     pub started: String,
     #[serde(rename = "timeSpentSeconds")]
     pub time_spent_seconds: u32,
-    pub visibility: Option<WorklogVisibility>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

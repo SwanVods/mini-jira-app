@@ -53,25 +53,13 @@ impl JiraClient {
         description: &str,
         started: &str,
         time_spent_seconds: u32,
-        visibility: Option<WorklogVisibility>,
     ) -> Result<WorklogResponse, Box<dyn std::error::Error>> {
         let url = format!("{}/rest/api/2/issue/{}/worklog", self.base_url, issue_key);
         
         let worklog_request = WorklogRequest {
-            comment: WorklogComment {
-                doc_type: "doc".to_string(),
-                version: 1,
-                content: vec![WorklogParagraph {
-                    paragraph_type: "paragraph".to_string(),
-                    content: vec![WorklogText {
-                        text_type: "text".to_string(),
-                        text: description.to_string(),
-                    }],
-                }],
-            },
+            comment: description.to_string(),
             started: started.to_string(),
             time_spent_seconds,
-            visibility,
         };
 
         let response = self.client

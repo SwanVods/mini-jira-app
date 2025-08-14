@@ -99,7 +99,6 @@ async fn create_worklog(
                 &description,
                 &started,
                 time_spent_seconds,
-                None,
             )
             .await
             .map_err(|e| format!("Failed to create worklog: {}", e))
