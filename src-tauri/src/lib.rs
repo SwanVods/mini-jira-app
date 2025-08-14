@@ -145,6 +145,15 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // This callback is called when a second instance is launched
+            // Show the existing window instead of creating a new one
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+                let _ = window.unminimize();
+            }
+        }))
         .setup(|app| {
             let show_item = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
             let hide_item = MenuItem::with_id(app, "hide", "Hide", true, None::<&str>)?;
